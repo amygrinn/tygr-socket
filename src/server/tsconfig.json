@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "outDir": "../out-tsc",
+    "declaration": true,
+    "declarationDir": "../dist",
+    "target": "es2017",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "module": "commonjs",
+    "noEmitOnError": true,
+    "baseUrl": "../",
+    "paths": {
+      "@tygr/socket": [
+        "."
+      ]
+    }
+  }
+}
