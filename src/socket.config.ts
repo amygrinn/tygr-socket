@@ -1,18 +1,22 @@
-import {
-  SocketConfig,
-  SOCKET,
-  socketClientReducer,
-  socketClientEffects,
-  statePieceMiddleware
-} from '@tygr/socket';
+import { getConfig } from '@tygr/core';
 
-const socketConfig: SocketConfig = {
-  name: SOCKET,
-  reducer: socketClientReducer,
-  effects: socketClientEffects,
-  middlewares: [statePieceMiddleware],
+import { SOCKET } from './SOCKET';
+import { ServerStoreConfig } from './server-store-config';
 
-  port: 4300
-};
+export class SocketConfig {
+    port: number = 4200;
+    angular?: { staticDirs: string[], index: string } = {
+        staticDirs: ['../../dist'],
+        index: '../../dist/index.html'
+    };
+    serverConfigs?: ServerStoreConfig[];
+    ws: string = 'ws://localhost:4200';
+}
 
-export default socketConfig;
+const baseConfig = new SocketConfig();
+
+export function socketConfig(): Promise<SocketConfig> {
+    return getConfig(SOCKET).then(conf => {
+        return { ...baseConfig, ...conf };
+    });
+}

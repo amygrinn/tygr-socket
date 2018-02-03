@@ -1,0 +1,6 @@
+/*
+!dist/
+dist/*.js.map
+!server/
+!*.ts
+index.ts

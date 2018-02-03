@@ -1,15 +1,12 @@
-export { SocketConfig } from './socket.config.i';
-
 import * as SocketActions from './socket.actions';
 export { SocketActions };
 
+export { ServerStoreConfig } from './server-store-config';
+
 export { ClientToServerAction, ServerToClientAction } from './transmission';
 
-export { ServerStore } from './server/server.store';
+export { StatePiece } from './state-piece.middleware';
 
-export { SOCKET } from './SOCKET';
+export { SocketConfig } from './socket.config';
 
-export { statePieceMiddleware, StatePiece } from './state-piece.middleware';
-
-export { socketClientReducer } from './client/socket.client.reducer';
-export { socketClientEffects } from './client/socket.client.effects';
+export { SocketModule } from './client/socket.module';

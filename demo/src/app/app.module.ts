@@ -1,6 +1,8 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 
+import { TygrModule } from '@tygr/core';
+import { SocketModule } from '@tygr/socket';
 
 import { AppComponent } from './app.component';
 
@@ -10,7 +12,9 @@ import { AppComponent } from './app.component';
     AppComponent
   ],
   imports: [
-    BrowserModule
+    BrowserModule,
+    TygrModule,
+    SocketModule
   ],
   providers: [],
   bootstrap: [AppComponent]

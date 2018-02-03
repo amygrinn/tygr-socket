@@ -1,7 +1,0 @@
-{
-  "scripts": {
-    "clean": "npm run build && npm run install",
-    "install": "npm i --prefix ./demo ./src",
-    "build": "npm run --prefix ./src build"
-  }
-}

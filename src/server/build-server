@@ -1,0 +1,17 @@
+#! /usr/bin/env node
+
+var Shell = require('shelljs');
+var path = require('path');
+var webpack = require('webpack');
+var config = require('./webpack.config.js');
+
+// Check if in node modules folder
+const pathTokens = __dirname.split(path.sep);
+
+if(pathTokens.length >= 4) {
+    const baseFolder = pathTokens[pathTokens.length - 4];
+
+    if(baseFolder === 'node_modules') {
+        webpack(config).run((err, stats) => {});
+    }
+}

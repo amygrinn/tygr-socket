@@ -1,19 +1,14 @@
 import { Action } from '@tygr/core';
 
 import { SOCKET } from './SOCKET';
-import { ClientToServerAction, ServerToClientAction } from './transmission';
 
-export class SendToServerFailed implements Action {
-  readonly type = SEND_TO_SERVER_FAILED;
-
-  constructor(public reason?: string) { }
-}
-
-export class ClientConnect extends ClientToServerAction {
+export class ClientConnect implements Action {
   readonly type = CLIENT_CONNECT;
+
+  constructor(public sessionId: string) { }
 }
 
-export class ServerConnect extends ServerToClientAction {
+export class ServerConnect implements Action {
   readonly type = SERVER_CONNECT;
 }
 
@@ -27,8 +22,21 @@ export class ServerDisconnect implements Action {
   readonly type = SERVER_DISCONNECT;
 }
 
-export const SEND_TO_SERVER_FAILED = SOCKET + ': Send to Server Failed';
+export class ClientAction implements Action {
+  readonly type = CLIENT_ACTION;
+
+  constructor(public sessionId: string, public action: Action) { }
+}
+
+export class ServerToClientAction implements Action {
+  readonly type = SERVER_TO_CLIENT_ACTION;
+
+  constructor(public sessionIds: string[], public action: Action) { }
+}
+
 export const CLIENT_CONNECT = SOCKET + ': Client Connect';
 export const SERVER_CONNECT = SOCKET + ': Server Connect';
 export const CLIENT_DISCONNECT = SOCKET + ': Client Disconnect';
 export const SERVER_DISCONNECT = SOCKET + ': Server Disconnect';
+export const CLIENT_ACTION = SOCKET + ': Client Action';
+export const SERVER_TO_CLIENT_ACTION = SOCKET + ': Server to Client Action';

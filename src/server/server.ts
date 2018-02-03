@@ -1,10 +1,10 @@
 // Angular requires Zone.js
-import 'zone.js/dist/zone-node';
+//import 'zone.js/dist/zone-node';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import { Request, Response } from 'express';
 import * as fs from 'fs';
-import * as ExpressWS from 'express-ws';
+import * as path from 'path';
 import * as WebSocket from 'ws';
 import * as http from 'http';
 import * as uuid from 'node-uuid';
@@ -15,93 +15,104 @@ import { ClientToServerAction, ServerToClientAction } from '../transmission';
 
 import { ServerStore } from './server.store';
 
-import socketConfig from '../socket.config';
+import { socketServerConfig } from './socket.server.config';
+
+import { socketConfig, SocketConfig } from '../socket.config';
 
 const app = express();
 
 app.set('view engine', 'html');
 app.set('views', __dirname);
 
-
-socketConfig.angular.staticDirs.forEach(dir => {
-  app.use(express.static(dir, { index: false }));
-});
-
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
-/*
-const serverStore = createServerStore();
+const configPath = path.join(__dirname, 'src/configs');
 
-const sessionsMap = new Map<string, WebSocket>();
+let sessions = {};
 
-function getSessionId(webSocket: WebSocket): string {
-  sessionsMap.forEach((ws: WebSocket, id: string) => {
-    if (webSocket === ws) {
-      return id;
+export function sendActionToClients(action: SocketActions.ServerToClientAction) {
+  action.sessionIds.forEach(id => {
+    if(sessions[id]) {
+      sessions[id].send(JSON.stringify(action.action));
     }
   });
-  return '';
 }
 
-export function sendActionToClients(action: ServerToClientAction) {
-  const sessionIds: string[] = action.sessionIds;
+socketConfig().then((config: SocketConfig) => {
 
-  action.sessionIds = null;
+  ServerStore.init(config);
 
-  sessionIds.forEach((sessionId: string) => {
-    sessionsMap.get(sessionId).send(action);
+  if(config.angular) {
+    
+    if(config.angular.staticDirs) {
+      config.angular.staticDirs.forEach(dir => {
+        app.use(express.static(
+          path.join(configPath, dir), 
+          { index: false }
+        ));
+      });
+    }
+
+    app.get('/*', (req: Request, res: Response) => {
+      res.sendFile(
+        path.join(configPath, config.angular.index)
+      );
+    });
+  }
+
+  const server = http.createServer(app);
+  const wss = new WebSocket.Server({ server });
+
+  const clientToServerActions: string[] = [].concat(
+    ...config.serverConfigs.map(
+      serverConfig => serverConfig.clientToServerActions
+    )
+  );
+
+  wss.on('connection', (ws, req) => {
+
+    const id = uuid.v4();
+
+    ws['_id'] = id;
+    sessions[id] = ws;
+
+    ws['isAlive'] = true;
+    ws.on('pong', () => ws['isAlive'] = true);
+
+    ws.send(JSON.stringify(new SocketActions.ServerConnect()));
+    ServerStore.dispatch(new SocketActions.ClientConnect(id));
+
+    ws.on('message', data => {
+      const action: Action = JSON.parse(data.toString()) as Action;
+      if(clientToServerActions.some(type => type === action.type)) {
+        ServerStore.dispatch(new SocketActions.ClientAction(id, action));
+      }
+    });
+
+    ws.on('close', () => {
+      ServerStore.dispatch(new SocketActions.ClientDisconnect(id));
+    });
   });
-}
 
-expressWS.getWss().on('connection', (ws: WebSocket) => {
+  const interval = setInterval(
+    () => {
+      wss.clients.forEach(function each(ws) {
+        if (ws['isAlive'] === false) {
+          ServerStore.dispatch(new SocketActions.ClientDisconnect(ws['_id']));
+          return ws.terminate();
+        }
 
-  const sessionId: string = uuid.v4();
-
-  sessionsMap.set(sessionId, ws);
-
-  const clientConnect: SocketActions.ClientConnect = new SocketActions.ClientConnect();
-  clientConnect.sessionId = sessionId;
-
-  serverStore.dispatch(clientConnect);
-
-  serverStore.dispatch(new SocketActions.ServerConnect(sessionId));
-
-});
+        ws['isAlive'] = false;
+        ws.ping(() => {});
+      });
+    },
+    10000
+  );
 
 
-expressWS.app.ws('/api', (ws: WebSocket) => {
-
-  ws.on('message', (action: ClientToServerAction) => {
-    action.sessionId = getSessionId(ws);
-
-    serverStore.dispatch(action);
+  server.listen(config.port, () => {
+    console.log(`Listening on http://localhost:${config.port}`);
   });
 
-  ws.on('close', () => {
-    const sessionId: string = getSessionId(ws);
-    serverStore.dispatch(
-      new SocketActions.ClientDisconnect(sessionId),
-    );
-    sessionsMap.delete(sessionId);
-  });
-});
-
-
-
-app.get('/*', (req: Request, res: Response) => {
-  res.render('./dist/index', {
-    req: req,
-    res: res,
-    providers: [{
-      provide: 'serverUrl',
-      useValue: `${req.protocol}://${req.get('host')}`
-    }]
-  });
-});
-
-const port = process.env.PORT || 4200;
-*/
-
-app.listen(socketConfig.port, () => {
-  console.log(`Listening on http://localhost:${socketConfig.port}`);
 });

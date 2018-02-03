@@ -10,11 +10,10 @@ import {
 } from '@tygr/core';
 
 import { statePieceMiddleware } from '../state-piece.middleware';
-import { socketServerConfig } from './socket.server.config';
-
 import { ServerStoreConfig } from '../server-store-config';
 
-import socketConfig from '../socket.config';
+import { socketConfig, SocketConfig } from '../socket.config';
+import { socketServerConfig } from './socket.server.config';
 
 export class ServerStore {
 
@@ -38,21 +37,19 @@ export class ServerStore {
     return ServerStore.instance.subscribe(listener);
   }
 
-  private static _instance: TygrStore;
-  private static get instance(): TygrStore {
-    if (!ServerStore._instance) {
-      ServerStore._instance = new TygrStore([
-        socketServerConfig,
-        ...socketConfig.serverConfigs
-      ])
+  public static init(config: SocketConfig) {
 
-      socketConfig.serverConfigs.forEach((storeConfig: ServerStoreConfig) => {
-        if (storeConfig.effects) {
-          storeConfig.effects(actions$, ServerStore.instance, storeConfig.service);
-        }
-      });
-    }
+    const serverStoreConfigs: ServerStoreConfig[] = [ socketServerConfig, ...config.serverConfigs ];
 
-    return ServerStore._instance;
+    ServerStore.instance = new TygrStore(serverStoreConfigs);
+
+    serverStoreConfigs.forEach((storeConfig: ServerStoreConfig) => {
+      if (storeConfig.effects) {
+        storeConfig.effects(actions$, ServerStore.instance, storeConfig.service);
+      }
+    });
   }
+
+  private static instance: TygrStore;
+
 }
