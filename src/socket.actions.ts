@@ -2,6 +2,12 @@ import { Action } from '@tygr/core';
 
 import { SOCKET } from './SOCKET';
 
+export class RegisterClientToServerActions implements Action {
+  readonly type = REGISTER_CLIENT_TO_SERVER_ACTIONS;
+
+  constructor(public actions: string[]) { }
+}
+
 export class ClientConnect implements Action {
   readonly type = CLIENT_CONNECT;
 
@@ -34,6 +40,7 @@ export class ServerToClientAction implements Action {
   constructor(public sessionIds: string[], public action: Action) { }
 }
 
+export const REGISTER_CLIENT_TO_SERVER_ACTIONS = SOCKET + ': Register Client to Server Actions';
 export const CLIENT_CONNECT = SOCKET + ': Client Connect';
 export const SERVER_CONNECT = SOCKET + ': Server Connect';
 export const CLIENT_DISCONNECT = SOCKET + ': Client Disconnect';

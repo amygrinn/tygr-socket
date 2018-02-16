@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-var Shell = require('shelljs');
+var fs = require('fs');
 var path = require('path');
 var webpack = require('webpack');
 var config = require('./webpack.config.js');
@@ -8,10 +8,17 @@ var config = require('./webpack.config.js');
 // Check if in node modules folder
 const pathTokens = __dirname.split(path.sep);
 
-if(pathTokens.length >= 4) {
-    const baseFolder = pathTokens[pathTokens.length - 4];
+if(pathTokens.length >= 5) {
 
-    if(baseFolder === 'node_modules') {
+    if(
+      pathTokens[pathTokens.length - 4] === 'node_modules'
+      && pathTokens[pathTokens.length - 5] !== 'src'
+    ) {
+        const root = path.join(__dirname, '../../../../')
+        const configFile = 'tygr.server.config.ts';
+        if(!fs.existsSync(path.join(root, configFile))) {
+          fs.copyFileSync(path.join(__dirname, configFile), path.join(root, configFile));
+        }
         webpack(config).run((err, stats) => {});
     }
 }

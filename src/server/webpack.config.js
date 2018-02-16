@@ -23,12 +23,12 @@ module.exports = {
     //plugins: [new tsLoader.TsConfigPathsPlugin()]
   },
   output: {
-    path: path.join(process.cwd(), '../../../'),
+    path: path.join(__dirname, '../../../../'),
     filename: 'server.js'
   },
   externals: [
     nodeExternals({
-      modulesDir: '../../'
+      modulesDir: path.join(__dirname, '../../../')
     })
   ]
 }

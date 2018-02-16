@@ -17,7 +17,7 @@ import { ServerStore } from './server.store';
 
 import { socketServerConfig } from './socket.server.config';
 
-import { socketConfig, SocketConfig } from '../socket.config';
+import { serverConfig } from '../../../../tygr.server.config';
 
 const app = express();
 
@@ -26,8 +26,6 @@ app.set('views', __dirname);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-
-const configPath = path.join(__dirname, 'src/configs');
 
 let sessions = {};
 
@@ -39,80 +37,72 @@ export function sendActionToClients(action: SocketActions.ServerToClientAction) 
   });
 }
 
-socketConfig().then((config: SocketConfig) => {
-
-  ServerStore.init(config);
-
-  if(config.angular) {
-    
-    if(config.angular.staticDirs) {
-      config.angular.staticDirs.forEach(dir => {
-        app.use(express.static(
-          path.join(configPath, dir), 
-          { index: false }
-        ));
-      });
-    }
-
-    app.get('/*', (req: Request, res: Response) => {
-      res.sendFile(
-        path.join(configPath, config.angular.index)
-      );
+if(serverConfig.angular) {
+  
+  if(serverConfig.angular.staticDirs) {
+    serverConfig.angular.staticDirs.forEach(dir => {
+      app.use(express.static(
+        dir, 
+        { index: false }
+      ));
     });
   }
 
-  const server = http.createServer(app);
-  const wss = new WebSocket.Server({ server });
+  app.get('/*', (req: Request, res: Response) => {
+    res.sendFile(path.join(__dirname, serverConfig.angular.index));
+  });
+}
 
-  const clientToServerActions: string[] = [].concat(
-    ...config.serverConfigs.map(
-      serverConfig => serverConfig.clientToServerActions
-    )
-  );
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
-  wss.on('connection', (ws, req) => {
+const clientToServerActions: string[] = [].concat(
+  ...serverConfig.serverStoreConfigs.map(
+    config => config.clientToServerActions
+  )
+);
 
-    const id = uuid.v4();
+wss.on('connection', (ws, req) => {
 
-    ws['_id'] = id;
-    sessions[id] = ws;
+  const id = uuid.v4();
 
-    ws['isAlive'] = true;
-    ws.on('pong', () => ws['isAlive'] = true);
+  ws['_id'] = id;
+  sessions[id] = ws;
 
-    ws.send(JSON.stringify(new SocketActions.ServerConnect()));
-    ServerStore.dispatch(new SocketActions.ClientConnect(id));
+  ws['isAlive'] = true;
+  ws.on('pong', () => ws['isAlive'] = true);
 
-    ws.on('message', data => {
-      const action: Action = JSON.parse(data.toString()) as Action;
-      if(clientToServerActions.some(type => type === action.type)) {
-        ServerStore.dispatch(new SocketActions.ClientAction(id, action));
+  ws.send(JSON.stringify(new SocketActions.ServerConnect()));
+  ServerStore.dispatch(new SocketActions.ClientConnect(id));
+
+  ws.on('message', data => {
+    const action: Action = JSON.parse(data.toString()) as Action;
+    if(clientToServerActions.some(type => type === action.type)) {
+      ServerStore.dispatch(new SocketActions.ClientAction(id, action));
+    }
+  });
+
+  ws.on('close', () => {
+    ServerStore.dispatch(new SocketActions.ClientDisconnect(id));
+  });
+});
+
+const interval = setInterval(
+  () => {
+    wss.clients.forEach(function each(ws) {
+      if (ws['isAlive'] === false) {
+        ServerStore.dispatch(new SocketActions.ClientDisconnect(ws['_id']));
+        return ws.terminate();
       }
+
+      ws['isAlive'] = false;
+      ws.ping(() => {});
     });
-
-    ws.on('close', () => {
-      ServerStore.dispatch(new SocketActions.ClientDisconnect(id));
-    });
-  });
-
-  const interval = setInterval(
-    () => {
-      wss.clients.forEach(function each(ws) {
-        if (ws['isAlive'] === false) {
-          ServerStore.dispatch(new SocketActions.ClientDisconnect(ws['_id']));
-          return ws.terminate();
-        }
-
-        ws['isAlive'] = false;
-        ws.ping(() => {});
-      });
-    },
-    10000
-  );
+  },
+  10000
+);
 
 
-  server.listen(config.port, () => {
-    console.log(`Listening on http://localhost:${config.port}`);
-  });
-
+server.listen(serverConfig.port, () => {
+  console.log(`Listening on http://localhost:${serverConfig.port}`);
 });

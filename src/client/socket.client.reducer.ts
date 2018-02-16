@@ -11,10 +11,18 @@ export const socketClientReducer: Reducer<ClientSocket> = (
 
   switch (action.type) {
     case SocketActions.SERVER_CONNECT:
-      return { connected: true };
+      return { ...state, connected: true };
 
     case SocketActions.SERVER_DISCONNECT:
-      return { connected: false };
+      return { ...state, connected: false };
+
+    case SocketActions.REGISTER_CLIENT_TO_SERVER_ACTIONS:
+      return { 
+        ...state,
+        clientToServerActions: [
+          ...state.clientToServerActions,
+          ...(action as SocketActions.RegisterClientToServerActions).actions
+        ]}
 
     default:
       return state;

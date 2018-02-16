@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ 	return __webpack_require__(__webpack_require__.s = 0);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -70,39 +70,22 @@
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SOCKET = 'socket';
-
-
-/***/ }),
-/* 1 */
-/***/ (function(module, exports) {
-
-module.exports = require("@tygr/core");
-
-/***/ }),
-/* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
 // Angular requires Zone.js
 //import 'zone.js/dist/zone-node';
-const express = __webpack_require__(4);
-const bodyParser = __webpack_require__(5);
-const path = __webpack_require__(6);
-const WebSocket = __webpack_require__(7);
-const http = __webpack_require__(8);
-const uuid = __webpack_require__(9);
-const SocketActions = __webpack_require__(3);
-const server_store_1 = __webpack_require__(11);
-const socket_config_1 = __webpack_require__(16);
+const express = __webpack_require__(5);
+const bodyParser = __webpack_require__(6);
+const path = __webpack_require__(7);
+const WebSocket = __webpack_require__(8);
+const http = __webpack_require__(9);
+const uuid = __webpack_require__(10);
+const SocketActions = __webpack_require__(1);
+const server_store_1 = __webpack_require__(12);
+const tygr_server_config_1 = __webpack_require__(4);
 const app = express();
 app.set('view engine', 'html');
 app.set('views', __dirname);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-const configPath = path.join(__dirname, 'src/configs');
 let sessions = {};
 function sendActionToClients(action) {
     action.sessionIds.forEach(id => {
@@ -112,63 +95,67 @@ function sendActionToClients(action) {
     });
 }
 exports.sendActionToClients = sendActionToClients;
-socket_config_1.socketConfig().then((config) => {
-    server_store_1.ServerStore.init(config);
-    if (config.angular) {
-        if (config.angular.staticDirs) {
-            config.angular.staticDirs.forEach(dir => {
-                app.use(express.static(path.join(configPath, dir), { index: false }));
-            });
-        }
-        app.get('/*', (req, res) => {
-            res.sendFile(path.join(configPath, config.angular.index));
+if (tygr_server_config_1.serverConfig.angular) {
+    if (tygr_server_config_1.serverConfig.angular.staticDirs) {
+        tygr_server_config_1.serverConfig.angular.staticDirs.forEach(dir => {
+            app.use(express.static(dir, { index: false }));
         });
     }
-    const server = http.createServer(app);
-    const wss = new WebSocket.Server({ server });
-    const clientToServerActions = [].concat(...config.serverConfigs.map(serverConfig => serverConfig.clientToServerActions));
-    wss.on('connection', (ws, req) => {
-        const id = uuid.v4();
-        ws['_id'] = id;
-        sessions[id] = ws;
-        ws['isAlive'] = true;
-        ws.on('pong', () => ws['isAlive'] = true);
-        ws.send(JSON.stringify(new SocketActions.ServerConnect()));
-        server_store_1.ServerStore.dispatch(new SocketActions.ClientConnect(id));
-        ws.on('message', data => {
-            const action = JSON.parse(data.toString());
-            if (clientToServerActions.some(type => type === action.type)) {
-                server_store_1.ServerStore.dispatch(new SocketActions.ClientAction(id, action));
-            }
-        });
-        ws.on('close', () => {
-            server_store_1.ServerStore.dispatch(new SocketActions.ClientDisconnect(id));
-        });
+    app.get('/*', (req, res) => {
+        res.sendFile(path.join(__dirname, tygr_server_config_1.serverConfig.angular.index));
     });
-    const interval = setInterval(() => {
-        wss.clients.forEach(function each(ws) {
-            if (ws['isAlive'] === false) {
-                server_store_1.ServerStore.dispatch(new SocketActions.ClientDisconnect(ws['_id']));
-                return ws.terminate();
-            }
-            ws['isAlive'] = false;
-            ws.ping(() => { });
-        });
-    }, 10000);
-    server.listen(config.port, () => {
-        console.log(`Listening on http://localhost:${config.port}`);
+}
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+const clientToServerActions = [].concat(...tygr_server_config_1.serverConfig.serverStoreConfigs.map(config => config.clientToServerActions));
+wss.on('connection', (ws, req) => {
+    const id = uuid.v4();
+    ws['_id'] = id;
+    sessions[id] = ws;
+    ws['isAlive'] = true;
+    ws.on('pong', () => ws['isAlive'] = true);
+    ws.send(JSON.stringify(new SocketActions.ServerConnect()));
+    server_store_1.ServerStore.dispatch(new SocketActions.ClientConnect(id));
+    ws.on('message', data => {
+        const action = JSON.parse(data.toString());
+        if (clientToServerActions.some(type => type === action.type)) {
+            server_store_1.ServerStore.dispatch(new SocketActions.ClientAction(id, action));
+        }
     });
+    ws.on('close', () => {
+        server_store_1.ServerStore.dispatch(new SocketActions.ClientDisconnect(id));
+    });
+});
+const interval = setInterval(() => {
+    wss.clients.forEach(function each(ws) {
+        if (ws['isAlive'] === false) {
+            server_store_1.ServerStore.dispatch(new SocketActions.ClientDisconnect(ws['_id']));
+            return ws.terminate();
+        }
+        ws['isAlive'] = false;
+        ws.ping(() => { });
+    });
+}, 10000);
+server.listen(tygr_server_config_1.serverConfig.port, () => {
+    console.log(`Listening on http://localhost:${tygr_server_config_1.serverConfig.port}`);
 });
 
 
 /***/ }),
-/* 3 */
+/* 1 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const SOCKET_1 = __webpack_require__(0);
+const SOCKET_1 = __webpack_require__(2);
+class RegisterClientToServerActions {
+    constructor(actions) {
+        this.actions = actions;
+        this.type = exports.REGISTER_CLIENT_TO_SERVER_ACTIONS;
+    }
+}
+exports.RegisterClientToServerActions = RegisterClientToServerActions;
 class ClientConnect {
     constructor(sessionId) {
         this.sessionId = sessionId;
@@ -211,6 +198,7 @@ class ServerToClientAction {
     }
 }
 exports.ServerToClientAction = ServerToClientAction;
+exports.REGISTER_CLIENT_TO_SERVER_ACTIONS = SOCKET_1.SOCKET + ': Register Client to Server Actions';
 exports.CLIENT_CONNECT = SOCKET_1.SOCKET + ': Client Connect';
 exports.SERVER_CONNECT = SOCKET_1.SOCKET + ': Server Connect';
 exports.CLIENT_DISCONNECT = SOCKET_1.SOCKET + ': Client Disconnect';
@@ -220,37 +208,71 @@ exports.SERVER_TO_CLIENT_ACTION = SOCKET_1.SOCKET + ': Server to Client Action';
 
 
 /***/ }),
-/* 4 */
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SOCKET = 'socket';
+
+
+/***/ }),
+/* 3 */
 /***/ (function(module, exports) {
 
-module.exports = require("express");
+module.exports = require("@tygr/core");
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.serverConfig = {
+    port: 4100,
+    angular: {
+        staticDirs: ['dist'],
+        index: 'dist/index.html'
+    },
+    ws: 'ws://localhost:4100',
+    serverStoreConfigs: []
+};
+
 
 /***/ }),
 /* 5 */
 /***/ (function(module, exports) {
 
-module.exports = require("body-parser");
+module.exports = require("express");
 
 /***/ }),
 /* 6 */
 /***/ (function(module, exports) {
 
-module.exports = require("path");
+module.exports = require("body-parser");
 
 /***/ }),
 /* 7 */
 /***/ (function(module, exports) {
 
-module.exports = require("ws");
+module.exports = require("path");
 
 /***/ }),
 /* 8 */
 /***/ (function(module, exports) {
 
-module.exports = require("http");
+module.exports = require("ws");
 
 /***/ }),
 /* 9 */
+/***/ (function(module, exports) {
+
+module.exports = require("http");
+
+/***/ }),
+/* 10 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;//     uuid.js
@@ -311,7 +333,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//     uuid.js
     // Moderately fast, high quality
     if (true) {
       try {
-        var _rb = __webpack_require__(10).randomBytes;
+        var _rb = __webpack_require__(11).randomBytes;
         _nodeRNG = _rng = _rb && function() {return _rb(16);};
         _rng();
       } catch(e) {}
@@ -529,20 +551,21 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//     uuid.js
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports) {
 
 module.exports = require("crypto");
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const core_1 = __webpack_require__(1);
-const socket_server_config_1 = __webpack_require__(12);
+const core_1 = __webpack_require__(3);
+const socket_server_config_1 = __webpack_require__(13);
+const tygr_server_config_1 = __webpack_require__(4);
 class ServerStore {
     static select(selector) {
         return ServerStore.instance.select(selector);
@@ -559,29 +582,33 @@ class ServerStore {
     static subscribe(listener) {
         return ServerStore.instance.subscribe(listener);
     }
-    static init(config) {
-        const serverStoreConfigs = [socket_server_config_1.socketServerConfig, ...config.serverConfigs];
-        ServerStore.instance = new core_1.TygrStore(serverStoreConfigs);
-        serverStoreConfigs.forEach((storeConfig) => {
-            if (storeConfig.effects) {
-                storeConfig.effects(core_1.actions$, ServerStore.instance, storeConfig.service);
-            }
-        });
+    static get instance() {
+        if (!this._instance) {
+            const serverStoreConfigs = [socket_server_config_1.socketServerConfig, ...tygr_server_config_1.serverConfig.serverStoreConfigs];
+            this._instance = new core_1.TygrStore({}, serverStoreConfigs);
+            serverStoreConfigs.forEach((storeConfig) => {
+                if (storeConfig.effects) {
+                    storeConfig.effects(core_1.actions$, ServerStore.instance, storeConfig.service);
+                }
+            });
+        }
+        return this._instance;
     }
+    ;
 }
 exports.ServerStore = ServerStore;
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const SOCKET_1 = __webpack_require__(0);
-const state_piece_middleware_1 = __webpack_require__(13);
-const socket_server_effects_1 = __webpack_require__(14);
+const SOCKET_1 = __webpack_require__(2);
+const state_piece_middleware_1 = __webpack_require__(14);
+const socket_server_effects_1 = __webpack_require__(15);
 exports.socketServerConfig = {
     name: SOCKET_1.SOCKET,
     effects: socket_server_effects_1.socketServerEffects,
@@ -590,7 +617,7 @@ exports.socketServerConfig = {
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -607,16 +634,16 @@ exports.statePieceMiddleware = store => next => action => {
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-__webpack_require__(15);
-const core_1 = __webpack_require__(1);
-const SocketActions = __webpack_require__(3);
-const server_1 = __webpack_require__(2);
+__webpack_require__(16);
+const core_1 = __webpack_require__(3);
+const SocketActions = __webpack_require__(1);
+const server_1 = __webpack_require__(0);
 exports.socketServerEffects = (actions$, store) => {
     actions$
         .filter(core_1.ofType(SocketActions.SERVER_TO_CLIENT_ACTION))
@@ -625,39 +652,10 @@ exports.socketServerEffects = (actions$, store) => {
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports) {
 
 module.exports = require("rxjs/add/operator/filter");
-
-/***/ }),
-/* 16 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const core_1 = __webpack_require__(1);
-const SOCKET_1 = __webpack_require__(0);
-class SocketConfig {
-    constructor() {
-        this.port = 4200;
-        this.angular = {
-            staticDirs: ['../../dist'],
-            index: '../../dist/index.html'
-        };
-        this.ws = 'ws://localhost:4200';
-    }
-}
-exports.SocketConfig = SocketConfig;
-const baseConfig = new SocketConfig();
-function socketConfig() {
-    return core_1.getConfig(SOCKET_1.SOCKET).then(conf => {
-        return Object.assign({}, baseConfig, conf);
-    });
-}
-exports.socketConfig = socketConfig;
-
 
 /***/ })
 /******/ ]);

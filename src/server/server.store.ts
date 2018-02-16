@@ -12,8 +12,9 @@ import {
 import { statePieceMiddleware } from '../state-piece.middleware';
 import { ServerStoreConfig } from '../server-store-config';
 
-import { socketConfig, SocketConfig } from '../socket.config';
 import { socketServerConfig } from './socket.server.config';
+
+import { serverConfig } from '../../../../tygr.server.config';
 
 export class ServerStore {
 
@@ -37,19 +38,22 @@ export class ServerStore {
     return ServerStore.instance.subscribe(listener);
   }
 
-  public static init(config: SocketConfig) {
+  private static get instance(): TygrStore {
+    if(!this._instance) {
+      const serverStoreConfigs: ServerStoreConfig[] = [ socketServerConfig, ...serverConfig.serverStoreConfigs ];
 
-    const serverStoreConfigs: ServerStoreConfig[] = [ socketServerConfig, ...config.serverConfigs ];
+      this._instance = new TygrStore({}, serverStoreConfigs);
 
-    ServerStore.instance = new TygrStore(serverStoreConfigs);
+      serverStoreConfigs.forEach((storeConfig: ServerStoreConfig) => {
+        if (storeConfig.effects) {
+          storeConfig.effects(actions$, ServerStore.instance, storeConfig.service);
+        }
+      });
+    }
 
-    serverStoreConfigs.forEach((storeConfig: ServerStoreConfig) => {
-      if (storeConfig.effects) {
-        storeConfig.effects(actions$, ServerStore.instance, storeConfig.service);
-      }
-    });
-  }
+   return this._instance; 
+  };
 
-  private static instance: TygrStore;
+  private static _instance: TygrStore;
 
 }

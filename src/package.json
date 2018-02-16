@@ -1,6 +1,6 @@
 {
   "name": "@tygr/socket",
-  "version": "1.0.3",
+  "version": "1.0.8",
   "description": "Use websockets to extend redux functionality to server code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,7 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "@angular/core": "^5.2.1",
-    "@tygr/core": "^1.0.0",
+    "@tygr/core": "^1.0.5",
     "@types/shelljs": "^0.7.7",
     "body-parser": "^1.18.2",
     "codelyzer": "^4.0.2",

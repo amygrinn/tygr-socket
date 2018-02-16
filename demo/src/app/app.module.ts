@@ -6,6 +6,7 @@ import { SocketModule } from '@tygr/socket';
 
 import { AppComponent } from './app.component';
 
+import { tygrConfig } from '../config/tygr.config';
 
 @NgModule({
   declarations: [
@@ -13,7 +14,7 @@ import { AppComponent } from './app.component';
   ],
   imports: [
     BrowserModule,
-    TygrModule,
+    TygrModule.forRoot(tygrConfig),
     SocketModule
   ],
   providers: [],
